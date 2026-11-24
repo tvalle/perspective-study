@@ -1,0 +1,1065 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Box Rotation &amp; Horizon Study</title>
+<style>
+:root{--paper:#f4efe4;--ink:#2a2520;--panel:#1d1b19;--panel2:#272421;--line:#3a3632;--text:#ece6da;--muted:#a39b8d;--accent:#e64980;--x:#e8590c;--y:#2f9e44;--z:#1971c2}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font:13px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--panel);color:var(--text)}
+#app{display:flex;height:100vh}
+#stage{position:relative;flex:1;min-width:0;background:var(--paper);overflow:hidden}
+#view{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none}
+#hint{position:absolute;top:8px;left:10px;right:240px;color:#6b6257;font-size:12px;pointer-events:none}
+#hint kbd{background:#fff8;border:1px solid #cfc6b5;border-radius:3px;padding:0 4px;font:11px ui-monospace,monospace;color:#4a433b}
+#insight{position:absolute;left:12px;bottom:12px;width:min(470px,calc(100% - 24px));max-height:46%;overflow:auto;background:#fffdf8ee;color:#2a2520;border:1px solid #d8cfbf;border-radius:10px;padding:10px 14px;box-shadow:0 4px 18px #0002;font-size:13px}
+#insight.collapsed #insightBody{display:none}
+#insight header{display:flex;justify-content:space-between;align-items:center;font-weight:600;cursor:pointer;user-select:none}
+#insight p{margin:.45em 0}
+#insight .lesson{background:#fdf0f5;border-left:3px solid var(--accent);padding:6px 10px;margin:6px 0;border-radius:4px}
+#insight .lesson b{display:block;margin-bottom:2px}
+#insight .rule{color:#6b6257;font-size:12px;border-top:1px solid #e6dfd2;padding-top:6px}
+.ax{font-weight:700}.ax0{color:var(--x)}.ax1{color:var(--y)}.ax2{color:var(--z)}
+#side{width:360px;flex:none;overflow-y:auto;background:var(--panel);border-left:1px solid #000;padding:10px 14px 40px}
+h1{font-size:15px;margin:2px 0 10px;letter-spacing:.02em}
+h2{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:16px 0 6px;display:flex;justify-content:space-between;align-items:center}
+.row{display:grid;grid-template-columns:78px 1fr 58px 16px;gap:6px;align-items:center;margin:3px 0}
+.row label{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .unit{color:var(--muted);font-size:11px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=number]{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:4px;padding:2px 4px;font:12px ui-monospace,monospace}
+button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:5px 9px;font:12px system-ui,sans-serif;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+#list{display:flex;flex-direction:column;gap:3px;max-height:170px;overflow:auto}
+.item{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.item:hover{background:var(--panel2)}
+.item.sel{background:var(--panel2);border-color:var(--accent)}
+.item small{color:var(--muted);margin-left:auto;font-family:ui-monospace,monospace;font-size:11px}
+.sw{width:12px;height:12px;border-radius:3px;flex:none}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:3px 10px}
+.checks label{display:flex;gap:6px;align-items:center;color:var(--text);font-size:12px;cursor:pointer}
+select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:4px;padding:2px 4px;font-size:12px}
+.selrow{display:flex;justify-content:space-between;align-items:center;margin:4px 0;font-size:12px}
+#presets{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+#presets button{text-align:left;padding:6px 8px}
+#mapWrap{background:#141311;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+#map{display:block;width:100%;height:200px;cursor:pointer}
+details{background:var(--panel2);border-radius:8px;padding:6px 10px;margin-top:8px}
+details summary{cursor:pointer;color:var(--muted)}
+details li{margin:4px 0}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--muted);margin-top:4px}
+.legend i{display:inline-block;width:10px;height:3px;margin-right:4px;vertical-align:middle}
+.muted{color:var(--muted);font-size:12px}
+#campad{position:absolute;top:10px;right:12px;width:212px;background:#1d1b19e8;color:var(--text);border:1px solid #000;border-radius:10px;padding:8px 10px;box-shadow:0 4px 18px #0003;font-size:12px;user-select:none}
+#campad header{display:flex;justify-content:space-between;font-weight:600;cursor:pointer;margin-bottom:4px}
+#campad.collapsed .body{display:none}
+#campad .grp{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:4px 0}
+#campad .grp.two{grid-template-columns:1fr 1fr}
+#campad button{padding:4px 0;font-size:12px}
+#campad .lbl{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-top:6px}
+#campad .readout{font:11px ui-monospace,monospace;color:var(--muted);margin-top:6px;line-height:1.5}
+#campad button.on{border-color:var(--accent);color:#fff}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="view"></canvas>
+    <div id="hint"><b>Box:</b> <kbd>drag</kbd> move · <kbd>Shift</kbd>+drag yaw · <kbd>Ctrl</kbd>/<kbd>Alt</kbd>+drag tilt · <kbd>Q</kbd><kbd>E</kbd> yaw · <kbd>W</kbd><kbd>S</kbd> pitch · <kbd>A</kbd><kbd>D</kbd> roll · <kbd>N</kbd> new · <kbd>Del</kbd> remove<br><b>Camera:</b> <kbd>right-drag</kbd> look · <kbd>middle-drag</kbd>/<kbd>Shift</kbd>+right-drag orbit · <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> walk · <kbd>R</kbd><kbd>F</kbd> eye height · <kbd>Z</kbd><kbd>C</kbd> roll · <kbd>Ctrl</kbd>+wheel FOV · <kbd>L</kbd> level · <kbd>G</kbd> look at box · <b>View:</b> <kbd>wheel</kbd> zoom · drag empty pan</div>
+    <div id="campad">
+      <header id="campadHead"><span>Camera</span><span id="campadToggle">▾</span></header>
+      <div class="body">
+        <div class="lbl">Look (turn / tilt)</div>
+        <div class="grp"><span></span><button data-cam="look-up" title="Tilt up">▲</button><span></span><button data-cam="look-left" title="Turn left">◀</button><button data-cam="level" title="Level camera (tilt and roll 0)">level</button><button data-cam="look-right" title="Turn right">▶</button><span></span><button data-cam="look-down" title="Tilt down">▼</button><span></span></div>
+        <div class="lbl">Walk</div>
+        <div class="grp"><span></span><button data-cam="fwd">fwd</button><span></span><button data-cam="left">left</button><button data-cam="back">back</button><button data-cam="right">right</button></div>
+        <div class="lbl">Eye height · roll · lens</div>
+        <div class="grp"><button data-cam="up">raise</button><button data-cam="down">lower</button><button data-cam="lookat" title="Aim at selected box">aim box</button><button data-cam="roll-l">roll ⟲</button><button data-cam="roll-r">roll ⟳</button><button data-cam="roll0">roll 0</button><button data-cam="wide">wider</button><button data-cam="tele">narrower</button><button data-cam="reset">reset</button></div>
+        <div class="lbl">Viewpoints (orbit selected box)</div>
+        <div class="grp"><button data-cam="worm" title="Eye near ground">worm</button><button data-cam="eye" title="Standing eye level">eye</button><button data-cam="bird" title="High, looking down">bird</button></div>
+        <div class="readout" id="camReadout"></div>
+      </div>
+    </div>
+    <div id="insight"><header id="insightHead"><span>What's happening</span><span id="insightToggle">▾</span></header><div id="insightBody"></div></div>
+  </div>
+  <aside id="side">
+    <h1>Box Rotation &amp; Horizon Study</h1>
+
+    <h2>Lessons / presets</h2>
+    <div id="presets"></div>
+
+    <h2>Boxes <span class="muted" id="boxCount"></span></h2>
+    <div id="list"></div>
+    <div class="btns">
+      <button class="primary" id="addBtn">+ Add box</button>
+      <button id="dupBtn">Duplicate</button>
+      <button id="delBtn">Remove</button>
+    </div>
+    <div class="btns">
+      <button id="lineUpBtn" title="Place every box on one row, same depth">Line up on one row</button>
+      <button id="copyRotBtn" title="Give every box the selected box's rotation">Copy rotation to all</button>
+      <button id="zeroRotBtn">Reset rotation</button>
+    </div>
+    <div id="boxControls"></div>
+
+    <h2>Camera / eye <button id="camReset">reset</button></h2>
+    <div id="camControls"></div>
+
+    <h2>Show</h2>
+    <div class="checks" id="checks"></div>
+    <div class="selrow">Vanishing points <select id="optVps"><option value="all">all boxes</option><option value="selected">selected box</option><option value="none">none</option></select></div>
+    <div class="selrow">Construction lines <select id="optCons"><option value="selected">selected box</option><option value="all">all boxes</option><option value="none">none</option></select></div>
+    <div class="legend"><span><i style="background:var(--x)"></i>x (width)</span><span><i style="background:var(--y)"></i>y (height)</span><span><i style="background:var(--z)"></i>z (depth)</span><span><i style="background:var(--accent)"></i>horizon</span></div>
+
+    <h2>Top view (plan)</h2>
+    <div id="mapWrap"><canvas id="map"></canvas></div>
+    <div class="muted" style="margin-top:4px">Drag boxes here too. Triangle = you (the eye) and your field of view.</div>
+
+    <details open>
+      <summary>Rules of thumb</summary>
+      <ul style="padding-left:18px;margin:6px 0">
+        <li><b>The horizon is your eye level.</b> It is the vanishing line of <i>every</i> horizontal plane (floor, table tops, box tops). Only the viewer changes it — boxes never do.</li>
+        <li><b>Yaw</b> (turning a box around the vertical) slides its two VPs <i>along</i> the horizon. It never creates a new line.</li>
+        <li><b>Parallel boxes share VPs</b>, wherever they sit — same row, deeper, higher, floating.</li>
+        <li><b>Every plane has its own vanishing line.</b> Tilting a box (<b>pitch</b> or <b>roll</b>) tilts its faces, so their vanishing lines leave the horizon — a "new horizon" for that surface (ramps, roofs, open lids, a book tipped up).</li>
+        <li>Tilting around a <b>horizontal hinge</b>: the hinge's VP stays on the horizon and the new line <i>pivots</i> around it.</li>
+        <li><b>Camera tilt</b> (looking up/down) moves the horizon in the frame and adds a vertical VP (3-point). <b>Camera roll</b> only rotates the horizon in the frame. <b>Camera height</b> changes how much top/underside you see.</li>
+      </ul>
+    </details>
+  </aside>
+</div>
+
+<script>
+'use strict';
+const DEG = Math.PI / 180;
+const AX_COL = ['#e8590c', '#2f9e44', '#1971c2'];
+const AX_NAME = ['x', 'y', 'z'];
+const AX_LONG = ['width (x)', 'height (y)', 'depth (z)'];
+const HORIZON_COL = '#d6336c';
+const NEAR = 0.05;
+const HUES = [24, 205, 140, 280, 350, 48, 175, 235, 320, 95];
+
+// ---------- vector math ----------
+const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const mul = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function matMul(A, B) { const R = [[0,0,0],[0,0,0],[0,0,0]]; for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) for (let k = 0; k < 3; k++) R[i][j] += A[i][k] * B[k][j]; return R; }
+const Rx = a => { const c = Math.cos(a), s = Math.sin(a); return [[1,0,0],[0,c,-s],[0,s,c]]; };
+const Ry = a => { const c = Math.cos(a), s = Math.sin(a); return [[c,0,s],[0,1,0],[-s,0,c]]; };
+const Rz = a => { const c = Math.cos(a), s = Math.sin(a); return [[c,-s,0],[s,c,0],[0,0,1]]; };
+const rotYPR = (y, p, r) => matMul(matMul(Ry(y), Rx(p)), Rz(r));
+const cols = M => [[M[0][0],M[1][0],M[2][0]],[M[0][1],M[1][1],M[2][1]],[M[0][2],M[1][2],M[2][2]]];
+const fmt = v => (Math.round(v * 10) / 10).toString();
+
+// ---------- state ----------
+const state = {
+  cam: { x: 0, z: 0, height: 1.6, pitch: 0, yaw: 0, roll: 0, fov: 60 },
+  view: { scale: 1, panX: 0, panY: 0 },
+  boxes: [],
+  selected: null,
+  lesson: null,
+  opts: { grid: true, horizon: true, sky: true, planeLines: true, sideLines: false, xray: false, labels: true, cv: true, vps: 'all', cons: 'selected' },
+};
+let nextId = 1;
+const defaultCam = () => ({ x: 0, z: 0, height: 1.6, pitch: 0, yaw: 0, roll: 0, fov: 60 });
+function makeBox(o = {}) {
+  const id = nextId++;
+  return Object.assign({ id, name: 'B' + id, x: 0, z: 8, elev: 0, w: 2, h: 2, d: 2, yaw: 30, pitch: 0, roll: 0, hue: HUES[(id - 1) % HUES.length] }, o);
+}
+const sel = () => state.boxes.find(b => b.id === state.selected) || null;
+
+// ---------- canvas ----------
+const canvas = document.getElementById('view');
+const ctx = canvas.getContext('2d');
+let W = 800, H = 600, DPR = 1;
+function resize() {
+  const r = canvas.getBoundingClientRect();
+  DPR = window.devicePixelRatio || 1;
+  W = r.width; H = r.height;
+  canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+  requestRender();
+}
+new ResizeObserver(resize).observe(canvas);
+
+// ---------- camera ----------
+let CAM;
+function computeCamera() {
+  const c = state.cam;
+  const [right, up, fwd] = cols(rotYPR(c.yaw * DEG, -c.pitch * DEG, c.roll * DEG));
+  const f = (H * state.view.scale / 2) / Math.tan(c.fov * DEG / 2);
+  CAM = { pos: [c.x, c.height, c.z], right, up, fwd, f, cx: W / 2 + state.view.panX, cy: H / 2 + state.view.panY };
+}
+const toCam = p => { const d = sub(p, CAM.pos); return [dot(d, CAM.right), dot(d, CAM.up), dot(d, CAM.fwd)]; };
+const dirCam = d => [dot(d, CAM.right), dot(d, CAM.up), dot(d, CAM.fwd)];
+const proj = pc => [CAM.cx + CAM.f * pc[0] / pc[2], CAM.cy - CAM.f * pc[1] / pc[2]];
+function screenRay(mx, my) {
+  const u = (mx - CAM.cx) / CAM.f, v = (CAM.cy - my) / CAM.f;
+  return add(add(mul(CAM.right, u), mul(CAM.up, v)), CAM.fwd);
+}
+function rayPlaneY(mx, my, y0) {
+  const d = screenRay(mx, my);
+  if (Math.abs(d[1]) < 1e-9) return null;
+  const t = (y0 - CAM.pos[1]) / d[1];
+  if (t <= 0) return null;
+  const p = add(CAM.pos, mul(d, t));
+  if (Math.hypot(p[0] - CAM.pos[0], p[2] - CAM.pos[2]) > 250) return null;
+  return p;
+}
+
+// ---------- box geometry ----------
+function boxGeom(b) {
+  const axes = cols(rotYPR(b.yaw * DEG, b.pitch * DEG, b.roll * DEG));
+  const half = [b.w / 2, b.h / 2, b.d / 2];
+  // rest the lowest corner on the box's elevation (ground by default)
+  const lift = Math.abs(axes[0][1]) * half[0] + Math.abs(axes[1][1]) * half[1] + Math.abs(axes[2][1]) * half[2];
+  const center = [b.x, b.elev + lift, b.z];
+  const verts = [];
+  for (let i = 0; i < 8; i++) {
+    let p = center;
+    for (let k = 0; k < 3; k++) p = add(p, mul(axes[k], ((i >> k) & 1 ? 1 : -1) * half[k]));
+    verts.push(p);
+  }
+  return { axes, half, center, verts };
+}
+function faceVerts(m, s) {
+  const [a, b] = [0, 1, 2].filter(k => k !== m);
+  const base = s > 0 ? 1 << m : 0;
+  return [base, base | (1 << a), base | (1 << a) | (1 << b), base | (1 << b)];
+}
+function classify(b) {
+  const g = boxGeom(b);
+  const ys = g.axes.map(a => Math.abs(a[1]));
+  const vert = ys.findIndex(y => y > 0.9999);
+  const horiz = ys.map((y, i) => (y < 1e-4 ? i : -1)).filter(i => i >= 0);
+  const top = ys.indexOf(Math.max(...ys));
+  const tiltDeg = Math.acos(Math.min(1, ys[top])) / DEG;
+  return { g, ys, vert, horiz, top, tiltDeg, upright: vert >= 0 };
+}
+function sameOrientation(a, b) {
+  const A = boxGeom(a).axes, B = boxGeom(b).axes;
+  return A.every(u => B.some(v => Math.abs(dot(u, v)) > 0.99999));
+}
+const parallelDir = (u, v) => Math.abs(dot(u, v)) > 0.99999;
+
+// ---------- clipping ----------
+function clipPoly(pts) {
+  const out = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length];
+    const ain = a[2] >= NEAR, bin = b[2] >= NEAR;
+    if (ain) out.push(a);
+    if (ain !== bin) { const t = (NEAR - a[2]) / (b[2] - a[2]); out.push([a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1]), NEAR]); }
+  }
+  return out;
+}
+function clipSeg(a, b) {
+  if (a[2] < NEAR && b[2] < NEAR) return null;
+  const lerp = (p, q) => { const t = (NEAR - p[2]) / (q[2] - p[2]); return [p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1]), NEAR]; };
+  if (a[2] < NEAR) a = lerp(a, b);
+  else if (b[2] < NEAR) b = lerp(b, a);
+  return [a, b];
+}
+function segScreen(p, q) { const s = clipSeg(toCam(p), toCam(q)); return s ? [proj(s[0]), proj(s[1])] : null; }
+function clipHalf(poly, fn) {
+  const out = [];
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length], fa = fn(a), fb = fn(b);
+    if (fa >= 0) out.push(a);
+    if ((fa >= 0) !== (fb >= 0)) { const t = fa / (fa - fb); out.push([a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])]); }
+  }
+  return out;
+}
+function clipLineRect(p0, dir, pad = 0) {
+  let t0 = -Infinity, t1 = Infinity;
+  const lo = [pad, pad], hi = [W - pad, H - pad];
+  for (let k = 0; k < 2; k++) {
+    if (Math.abs(dir[k]) < 1e-12) { if (p0[k] < lo[k] || p0[k] > hi[k]) return null; }
+    else { let a = (lo[k] - p0[k]) / dir[k], b = (hi[k] - p0[k]) / dir[k]; if (a > b) [a, b] = [b, a]; t0 = Math.max(t0, a); t1 = Math.min(t1, b); }
+  }
+  return t0 <= t1 ? [t0, t1] : null;
+}
+
+// ---------- vanishing points & lines ----------
+function vpOf(d) {
+  const dc = dirCam(d);
+  const sdir = [dc[0], -dc[1]];
+  if (Math.abs(dc[2]) < 1e-9) return { inf: true, dir: sdir };
+  const x = CAM.cx + CAM.f * dc[0] / dc[2], y = CAM.cy - CAM.f * dc[1] / dc[2];
+  if (Math.hypot(x - CAM.cx, y - CAM.cy) > 2e5) return { inf: true, dir: sdir };
+  return { inf: false, x, y };
+}
+// vanishing line of all planes with world normal n:  A*sx + B*sy + C = 0
+function vLine(n) {
+  const nc = dirCam(n);
+  const A = nc[0], B = -nc[1], C = -nc[0] * CAM.cx + nc[1] * CAM.cy + nc[2] * CAM.f;
+  const h = A * A + B * B;
+  if (h < 1e-12) return null;
+  const k = (A * W / 2 + B * H / 2 + C) / h;
+  const s = Math.sqrt(h);
+  let dir = [-B / s, A / s];
+  if (dir[0] < 0 || (Math.abs(dir[0]) < 1e-9 && dir[1] < 0)) dir = [-dir[0], -dir[1]];
+  return { A, B, C, p0: [W / 2 - A * k, H / 2 - B * k], dir };
+}
+
+// ---------- rendering ----------
+let renderQueued = false;
+function requestRender() { if (!renderQueued) { renderQueued = true; requestAnimationFrame(render); } }
+let hitList = [];
+
+function render() {
+  renderQueued = false;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  computeCamera();
+  const o = state.opts;
+  const horizon = vLine([0, 1, 0]);
+
+  // paper / sky / ground
+  ctx.fillStyle = o.sky ? '#ebe3d3' : '#f4efe4';
+  ctx.fillRect(0, 0, W, H);
+  if (horizon) {
+    const q = add([horizon.p0[0], horizon.p0[1], 0], [horizon.A, horizon.B, 0]);
+    const skySign = screenRay(q[0], q[1])[1] > 0 ? 1 : -1;
+    const sky = clipHalf([[0, 0], [W, 0], [W, H], [0, H]], p => skySign * (horizon.A * p[0] + horizon.B * p[1] + horizon.C));
+    if (sky.length > 2) {
+      ctx.fillStyle = o.sky ? '#f6f2ea' : '#f4efe4';
+      ctx.beginPath(); sky.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.fill();
+    }
+  }
+
+  if (o.grid) drawGrid();
+
+  // picture frame when zoomed/panned
+  if (Math.abs(state.view.scale - 1) > 1e-3 || state.view.panX || state.view.panY) {
+    const fw = W * state.view.scale, fh = H * state.view.scale;
+    ctx.save(); ctx.strokeStyle = '#8a7f70'; ctx.setLineDash([6, 4]); ctx.lineWidth = 1;
+    ctx.strokeRect(CAM.cx - fw / 2, CAM.cy - fh / 2, fw, fh);
+    ctx.fillStyle = '#8a7f70'; ctx.font = '11px system-ui'; ctx.fillText('picture frame (what your camera sees)', CAM.cx - fw / 2 + 4, CAM.cy - fh / 2 - 5);
+    ctx.restore();
+  }
+
+  // boxes, far to near
+  hitList = [];
+  const s = sel();
+  const geoms = state.boxes.map(b => ({ b, g: boxGeom(b) }));
+  geoms.sort((A, B) => dist2(B.g.center) - dist2(A.g.center));
+  for (const { b, g } of geoms) drawBox(b, g, s && s.id === b.id);
+
+  // plane vanishing lines for tilted boxes
+  if (o.planeLines) {
+    for (const b of state.boxes) {
+      const c = classify(b);
+      const isSel = s && s.id === b.id;
+      if (!c.upright) {
+        const vl = vLine(c.g.axes[c.top]);
+        if (vl) drawVLine(vl, `hsl(${b.hue} 60% 38%)`, isSel ? 2 : 1.2, [10, 6], o.labels ? `${b.name} ${['side', 'top', 'front'][c.top]} plane — its own "horizon" (tilted ${fmt(c.tiltDeg)}°)` : '', isSel ? 1 : 0.55);
+      }
+      if (isSel && o.sideLines) {
+        [0, 1, 2].filter(k => k !== c.top || c.upright).forEach(k => {
+          if (c.upright && parallelDir(c.g.axes[k], [0, 1, 0])) return; // = horizon
+          const vl = vLine(c.g.axes[k]);
+          if (vl) drawVLine(vl, AX_COL[k], 1, [3, 5], o.labels ? `${b.name} plane ⟂ ${AX_NAME[k]}` : '', 0.6);
+        });
+      }
+    }
+  }
+
+  // horizon
+  if (o.horizon && horizon) {
+    drawVLine(horizon, HORIZON_COL, 2.2, [], o.labels ? `HORIZON · eye level (${fmt(state.cam.height)} m)` : '', 1);
+  }
+
+  // construction lines
+  for (const b of state.boxes) {
+    if (o.cons === 'all' || (o.cons === 'selected' && s && s.id === b.id)) drawConstruction(b, s && s.id === b.id);
+  }
+
+  // center of vision
+  if (o.cv) {
+    ctx.save(); ctx.strokeStyle = '#6b6257'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(CAM.cx - 7, CAM.cy); ctx.lineTo(CAM.cx + 7, CAM.cy); ctx.moveTo(CAM.cx, CAM.cy - 7); ctx.lineTo(CAM.cx, CAM.cy + 7); ctx.stroke();
+    if (o.labels) { ctx.fillStyle = '#6b6257'; ctx.font = '10px system-ui'; ctx.fillText('CV', CAM.cx + 5, CAM.cy + 13); }
+    ctx.restore();
+  }
+
+  drawVPs();
+  drawMap();
+  updateInsight();
+}
+const dist2 = p => { const d = sub(p, CAM.pos); return dot(d, d); };
+
+function drawGrid() {
+  ctx.save();
+  ctx.lineWidth = 1;
+  const R = 40, cx = Math.round(state.cam.x), cz = Math.round(state.cam.z);
+  for (let i = -R; i <= R; i++) {
+    const major = (i % 5) === 0;
+    ctx.strokeStyle = major ? '#cbbfa9' : '#ddd3c1';
+    const lines = [[[cx + i, 0, cz - R], [cx + i, 0, cz + R]], [[cx - R, 0, cz + i], [cx + R, 0, cz + i]]];
+    for (const [p, q] of lines) {
+      const sgm = segScreen(p, q);
+      if (!sgm) continue;
+      ctx.beginPath(); ctx.moveTo(sgm[0][0], sgm[0][1]); ctx.lineTo(sgm[1][0], sgm[1][1]); ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawBox(b, g, isSel) {
+  const o = state.opts;
+  const vis = [[false, false], [false, false], [false, false]];
+  for (let m = 0; m < 3; m++) for (const sg of [1, -1]) {
+    const n = mul(g.axes[m], sg);
+    const fc = add(g.center, mul(n, g.half[m]));
+    vis[m][sg > 0 ? 1 : 0] = dot(n, sub(CAM.pos, fc)) > 0;
+  }
+  const light = (() => { const l = [0.35, 0.85, -0.45]; const L = Math.hypot(...l); return mul(l, 1 / L); })();
+  const paths = [];
+  const xray = o.xray;
+  // faces
+  for (let m = 0; m < 3; m++) for (const sg of [1, -1]) {
+    if (!vis[m][sg > 0 ? 1 : 0]) continue;
+    const pts = clipPoly(faceVerts(m, sg).map(i => toCam(g.verts[i])));
+    if (pts.length < 3) continue;
+    const sp = pts.map(proj);
+    const path = new Path2D();
+    sp.forEach((p, i) => (i ? path.lineTo(p[0], p[1]) : path.moveTo(p[0], p[1])));
+    path.closePath();
+    const n = mul(g.axes[m], sg);
+    const lum = 52 + 34 * Math.max(0, dot(n, light));
+    ctx.fillStyle = `hsla(${b.hue} ${isSel ? 45 : 30}% ${lum}% / ${xray ? 0.3 : 0.94})`;
+    ctx.fill(path);
+    paths.push(path);
+  }
+  hitList.push({ b, paths });
+  // edges
+  const edges = [];
+  for (let i = 0; i < 8; i++) for (let k = 0; k < 3; k++) {
+    if ((i >> k) & 1) continue;
+    const j = i | (1 << k);
+    const [a1, a2] = [0, 1, 2].filter(q => q !== k);
+    const visible = vis[a1][(i >> a1) & 1] || vis[a2][(i >> a2) & 1];
+    edges.push({ i, j, k, visible });
+  }
+  ctx.save();
+  ctx.lineCap = 'round';
+  for (const e of edges) {
+    if (e.visible) continue;
+    if (!(xray || isSel)) continue;
+    const sgm = segScreen(g.verts[e.i], g.verts[e.j]);
+    if (!sgm) continue;
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = isSel ? AX_COL[e.k] : '#5a524a';
+    ctx.globalAlpha = 0.55; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(...sgm[0]); ctx.lineTo(...sgm[1]); ctx.stroke();
+  }
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  for (const e of edges) {
+    if (!e.visible) continue;
+    const sgm = segScreen(g.verts[e.i], g.verts[e.j]);
+    if (!sgm) continue;
+    ctx.strokeStyle = isSel ? AX_COL[e.k] : '#2a2520';
+    ctx.lineWidth = isSel ? 2.4 : 1.4;
+    ctx.beginPath(); ctx.moveTo(...sgm[0]); ctx.lineTo(...sgm[1]); ctx.stroke();
+  }
+  // name tag
+  if (o.labels) {
+    const top = g.verts.map(toCam).filter(p => p[2] > NEAR).map(proj);
+    if (top.length) {
+      const mx = top.reduce((a, p) => a + p[0], 0) / top.length;
+      const my = Math.min(...top.map(p => p[1]));
+      ctx.font = `${isSel ? 'bold ' : ''}11px system-ui`;
+      ctx.fillStyle = `hsl(${b.hue} 55% 30%)`;
+      ctx.textAlign = 'center';
+      ctx.fillText(b.name, mx, my - 6);
+    }
+  }
+  ctx.restore();
+}
+
+function drawVLine(vl, color, width, dash, label, alpha) {
+  const L = (W + H) * 2;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash);
+  ctx.beginPath();
+  ctx.moveTo(vl.p0[0] - vl.dir[0] * L, vl.p0[1] - vl.dir[1] * L);
+  ctx.lineTo(vl.p0[0] + vl.dir[0] * L, vl.p0[1] + vl.dir[1] * L);
+  ctx.stroke();
+  if (label) {
+    const t = clipLineRect(vl.p0, vl.dir, 6);
+    if (t) {
+      const tt = t[0] + Math.min(14, (t[1] - t[0]) / 2);
+      const px = vl.p0[0] + vl.dir[0] * tt, py = vl.p0[1] + vl.dir[1] * tt;
+      ctx.translate(px, py); ctx.rotate(Math.atan2(vl.dir[1], vl.dir[0]));
+      ctx.font = 'bold 11px system-ui'; ctx.setLineDash([]);
+      ctx.lineWidth = 3; ctx.strokeStyle = '#f6f2eadd'; ctx.strokeText(label, 0, -6);
+      ctx.fillStyle = color; ctx.fillText(label, 0, -6);
+    }
+  }
+  ctx.restore();
+}
+
+function drawConstruction(b, isSel) {
+  const g = boxGeom(b);
+  ctx.save();
+  ctx.lineWidth = 0.9;
+  ctx.setLineDash([2, 4]);
+  for (let k = 0; k < 3; k++) {
+    const vp = vpOf(g.axes[k]);
+    ctx.strokeStyle = AX_COL[k];
+    ctx.globalAlpha = isSel ? 0.7 : 0.35;
+    for (let i = 0; i < 8; i++) {
+      if ((i >> k) & 1) continue;
+      const sgm = segScreen(g.verts[i], g.verts[i | (1 << k)]);
+      if (!sgm) continue;
+      const [p, q] = sgm;
+      ctx.beginPath();
+      if (vp.inf) {
+        const d = [q[0] - p[0], q[1] - p[1]]; const l = Math.hypot(...d) || 1; const L = (W + H) * 2;
+        ctx.moveTo(p[0] - d[0] / l * L, p[1] - d[1] / l * L); ctx.lineTo(p[0] + d[0] / l * L, p[1] + d[1] / l * L);
+      } else {
+        const far = Math.hypot(p[0] - vp.x, p[1] - vp.y) > Math.hypot(q[0] - vp.x, q[1] - vp.y) ? p : q;
+        ctx.moveTo(far[0], far[1]); ctx.lineTo(vp.x, vp.y);
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function borderPoint(dx, dy, pad = 20) {
+  const cx = W / 2, cy = H / 2;
+  const tx = Math.abs(dx) > 1e-12 ? ((dx > 0 ? W - pad : pad) - cx) / dx : Infinity;
+  const ty = Math.abs(dy) > 1e-12 ? ((dy > 0 ? H - pad : pad) - cy) / dy : Infinity;
+  const t = Math.min(tx, ty);
+  return [cx + dx * t, cy + dy * t];
+}
+
+function drawVPs() {
+  const o = state.opts;
+  if (o.vps === 'none') return;
+  const s = sel();
+  const marks = [];
+  for (const b of state.boxes) {
+    const isSel = s && s.id === b.id;
+    if (o.vps === 'selected' && !isSel) continue;
+    const g = boxGeom(b);
+    for (let k = 0; k < 3; k++) {
+      const vp = vpOf(g.axes[k]);
+      let x, y, off = false, inf = vp.inf, ang = 0;
+      if (vp.inf) {
+        [x, y] = borderPoint(vp.dir[0], vp.dir[1]); off = true; ang = Math.atan2(vp.dir[1], vp.dir[0]);
+      } else if (vp.x < 8 || vp.x > W - 8 || vp.y < 8 || vp.y > H - 8) {
+        const dx = vp.x - W / 2, dy = vp.y - H / 2;
+        [x, y] = borderPoint(dx, dy); off = true; ang = Math.atan2(dy, dx);
+      } else { x = vp.x; y = vp.y; }
+      marks.push({ x, y, off, inf, ang, k, isSel, labels: [`${b.name}·${AX_NAME[k]}`] });
+    }
+  }
+  // merge coincident points (shared VPs)
+  const merged = [];
+  for (const m of marks) {
+    const hit = merged.find(q => q.off === m.off && q.inf === m.inf && Math.hypot(q.x - m.x, q.y - m.y) < 4);
+    if (hit) { hit.labels.push(...m.labels); hit.isSel = hit.isSel || m.isSel; if (m.isSel) hit.k = m.k; hit.ks.add(m.k); }
+    else merged.push({ ...m, ks: new Set([m.k]) });
+  }
+  ctx.save();
+  for (const m of merged) {
+    const r = m.isSel ? 6 : 4.5;
+    ctx.globalAlpha = m.isSel || o.vps === 'selected' ? 1 : 0.75;
+    ctx.fillStyle = AX_COL[m.k]; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+    if (m.off) {
+      ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(m.ang);
+      ctx.beginPath(); ctx.moveTo(r + 5, 0); ctx.lineTo(-r, -r); ctx.lineTo(-r, r); ctx.closePath(); ctx.stroke(); ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.beginPath(); ctx.arc(m.x, m.y, r, 0, Math.PI * 2); ctx.stroke(); ctx.fill();
+    }
+    if (o.labels) {
+      let text = m.labels.join(', ');
+      if (m.labels.length > 4) text = m.labels.slice(0, 4).join(', ') + ` +${m.labels.length - 4}`;
+      text = 'VP ' + text + (m.inf ? '  ∞ (parallel)' : m.off ? '  (off-screen → zoom out)' : '');
+      ctx.font = `${m.isSel ? 'bold ' : ''}11px system-ui`;
+      const tw = ctx.measureText(text).width;
+      let lx = m.x + 9, ly = m.y - 9;
+      if (lx + tw > W - 4) lx = m.x - 9 - tw;
+      if (ly < 14) ly = m.y + 18;
+      ctx.lineWidth = 3; ctx.strokeStyle = '#f6f2eaee'; ctx.strokeText(text, lx, ly);
+      ctx.fillStyle = AX_COL[m.k]; ctx.fillText(text, lx, ly);
+    }
+  }
+  ctx.restore();
+}
+
+// ---------- top view map ----------
+const map = document.getElementById('map');
+const mctx = map.getContext('2d');
+let MAP = null;
+function drawMap() {
+  const r = map.getBoundingClientRect();
+  const mw = r.width, mh = r.height;
+  if (map.width !== Math.round(mw * DPR)) { map.width = Math.round(mw * DPR); map.height = Math.round(mh * DPR); }
+  mctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  mctx.fillStyle = '#141311'; mctx.fillRect(0, 0, mw, mh);
+  const c = state.cam;
+  let xs = [c.x - 4, c.x + 4], zs = [c.z - 2, c.z + 6];
+  for (const b of state.boxes) { const R = Math.max(b.w, b.h, b.d); xs.push(b.x - R, b.x + R); zs.push(b.z - R, b.z + R); }
+  let minx = Math.min(...xs), maxx = Math.max(...xs), minz = Math.min(...zs), maxz = Math.max(...zs);
+  const sc = Math.min((mw - 20) / (maxx - minx), (mh - 20) / (maxz - minz));
+  const ox = mw / 2 - sc * (minx + maxx) / 2, oz = mh / 2 + sc * (minz + maxz) / 2;
+  const T = (x, z) => [ox + x * sc, oz - z * sc];
+  MAP = { T, inv: (px, py) => [(px - ox) / sc, (oz - py) / sc], sc };
+  // grid
+  mctx.strokeStyle = '#26231f'; mctx.lineWidth = 1;
+  const step = sc > 12 ? 1 : 5;
+  for (let x = Math.floor(minx - 50); x <= maxx + 50; x += step) { const [a] = T(x, 0); mctx.beginPath(); mctx.moveTo(a, 0); mctx.lineTo(a, mh); mctx.stroke(); }
+  for (let z = Math.floor(minz - 50); z <= maxz + 50; z += step) { const [, a] = T(0, z); mctx.beginPath(); mctx.moveTo(0, a); mctx.lineTo(mw, a); mctx.stroke(); }
+  // view cone
+  const hfov = 2 * Math.atan(Math.tan(c.fov * DEG / 2) * W / H);
+  const [px, py] = T(c.x, c.z);
+  mctx.fillStyle = '#e6498022'; mctx.strokeStyle = '#e6498088';
+  mctx.beginPath(); mctx.moveTo(px, py);
+  for (const a of [-hfov / 2, hfov / 2]) { const ang = c.yaw * DEG + a; const [qx, qz] = T(c.x + Math.sin(ang) * 200, c.z + Math.cos(ang) * 200); mctx.lineTo(qx, qz); }
+  mctx.closePath(); mctx.fill(); mctx.stroke();
+  // boxes
+  const s = sel();
+  for (const b of state.boxes) {
+    const g = boxGeom(b);
+    const isSel = s && s.id === b.id;
+    mctx.strokeStyle = isSel ? '#fff' : `hsl(${b.hue} 55% 60%)`; mctx.lineWidth = isSel ? 2 : 1.2;
+    for (let i = 0; i < 8; i++) for (let k = 0; k < 3; k++) {
+      if ((i >> k) & 1) continue;
+      const p = g.verts[i], q = g.verts[i | (1 << k)];
+      mctx.beginPath(); mctx.moveTo(...T(p[0], p[2])); mctx.lineTo(...T(q[0], q[2])); mctx.stroke();
+    }
+    mctx.fillStyle = mctx.strokeStyle; mctx.font = '10px system-ui';
+    const [lx, ly] = T(b.x, b.z); mctx.fillText(b.name, lx + 4, ly - 4);
+  }
+  // eye
+  mctx.save(); mctx.translate(px, py); mctx.rotate(c.yaw * DEG);
+  mctx.fillStyle = '#e64980'; mctx.beginPath(); mctx.moveTo(0, -8); mctx.lineTo(5, 5); mctx.lineTo(-5, 5); mctx.closePath(); mctx.fill();
+  mctx.restore();
+}
+
+// ---------- insight text ----------
+const insightBody = document.getElementById('insightBody');
+function axSpan(k) { return `<span class="ax ax${k}">${AX_NAME[k]}</span>`; }
+function updateInsight() {
+  const c = state.cam, out = [];
+  if (state.lesson) out.push(`<div class="lesson"><b>${state.lesson.title}</b>${state.lesson.text}</div>`);
+  let cam;
+  if (Math.abs(c.pitch) < 0.5) cam = '<b>Camera is level.</b> The picture plane is vertical, so vertical edges stay vertical and parallel (no vertical VP). The horizon runs through the center of vision (CV).';
+  else if (c.pitch > 0) cam = `<b>Camera tilted up ${fmt(c.pitch)}°.</b> The horizon drops below the CV and vertical edges converge <i>upward</i> to a 3rd VP → 3-point perspective. The horizon is still exactly your eye level; it just sits lower in the frame.`;
+  else cam = `<b>Camera tilted down ${fmt(-c.pitch)}°.</b> The horizon rises above the CV and vertical edges converge <i>downward</i> to a 3rd VP → 3-point perspective. Still the same eye-level horizon.`;
+  if (Math.abs(c.roll) > 0.5) cam += ` <b>Camera rolled ${fmt(c.roll)}°</b> (dutch angle): the horizon is tilted in the frame, but it's the same eye-level line — the whole picture just rotated.`;
+  out.push(`<p>${cam}</p>`);
+
+  const b = sel();
+  if (b) {
+    const k = classify(b);
+    let t = '';
+    if (k.upright) {
+      if (k.vert === 1) t = `<b>${b.name} is only yawed</b> (turned ${fmt(b.yaw)}° around the vertical). Its horizontal edges (${axSpan(0)}, ${axSpan(2)}) vanish <i>on</i> the horizon. Changing yaw just slides those two VPs along it — when one swings toward the CV, the other runs off far to the side.`;
+      else t = `<b>${b.name} is lying on its side</b> (rotated exactly 90°). Every edge is still horizontal or vertical, so it behaves like an un-tilted box: its VPs stay on the horizon.`;
+      const fh = [Math.sin(c.yaw * DEG), 0, Math.cos(c.yaw * DEG)];
+      if (Math.abs(c.pitch) < 0.5 && k.horiz.some(i => Math.abs(dot(k.g.axes[i], fh)) > 0.99996)) {
+        const d = k.horiz.find(i => Math.abs(dot(k.g.axes[i], fh)) > 0.99996);
+        t += ` Right now one face is parallel to the picture plane → <b>1-point perspective</b> for this box: its ${axSpan(d)} edges run to the CV, the others stay parallel (VP at ∞).`;
+      }
+      if (Math.abs(c.pitch) >= 0.5) t += ` Because the camera is tilted, its vertical (${axSpan(k.vert)}) edges converge to the 3rd VP.`;
+      const ys = k.g.verts.map(v => v[1]); const lo = Math.min(...ys), hi = Math.max(...ys);
+      if (hi < c.height - 0.01) t += ` It's entirely <b>below eye level</b> → you see its top.`;
+      else if (lo > c.height + 0.01) t += ` It's entirely <b>above eye level</b> → you see its underside.`;
+      else t += ` The <b>horizon cuts through it</b> (your eye is between its bottom and top) → you see neither top nor bottom.`;
+    } else if (k.horiz.length === 1) {
+      const h = k.horiz[0];
+      t = `<b>${b.name} is tilted ${fmt(k.tiltDeg)}°</b> around a horizontal hinge (its ${axSpan(h)} axis). Its ${axSpan(h)} edges are still horizontal, so <b>VP ${axSpan(h)} stays on the horizon</b>; the other two VPs leave it. Its top face is now an inclined plane with its <b>own vanishing line</b> (dashed) — a "new horizon" for anything lying on that surface. That line pivots around VP ${axSpan(h)}: tilt more and it swings further from the true horizon.`;
+    } else {
+      t = `<b>${b.name} has a compound tilt</b> (pitch + roll, ${fmt(k.tiltDeg)}° off level). No edge is horizontal any more, so <b>none of its VPs lie on the horizon</b>. Each of its faces has its own vanishing line (dashed for the top-ish face; enable "side plane lines" to see the others).`;
+    }
+    out.push(`<p>${t}</p>`);
+    const same = state.boxes.filter(o => o.id !== b.id && sameOrientation(o, b)).map(o => o.name);
+    const others = state.boxes.filter(o => o.id !== b.id && !sameOrientation(o, b));
+    let sh = '';
+    if (same.length) sh += `Shares <b>all</b> its VPs with ${same.join(', ')} — same rotation means parallel edges, no matter where they sit. `;
+    if (k.upright) {
+      const up2 = others.filter(o => classify(o).upright).map(o => o.name);
+      if (up2.length) sh += `${up2.join(', ')} ${up2.length > 1 ? 'are' : 'is'} upright but turned differently → different VPs, yet on the <b>same horizon</b>.`;
+    }
+    if (sh) out.push(`<p>${sh}</p>`);
+  } else if (state.boxes.length) out.push('<p class="muted">Click a box to see what its rotation is doing.</p>');
+
+  // scene summary
+  const upright = state.boxes.filter(b => classify(b).upright);
+  const groups = [];
+  for (const b of upright) { if (!groups.some(g => sameOrientation(g, b))) groups.push(b); }
+  const tilted = state.boxes.filter(b => !classify(b).upright);
+  const tops = [];
+  for (const b of tilted) { const n = classify(b); const nn = n.g.axes[n.top]; if (!tops.some(t => parallelDir(t, nn))) tops.push(nn); }
+  if (state.boxes.length) out.push(`<p><b>Scene:</b> ${state.boxes.length} box${state.boxes.length > 1 ? 'es' : ''}. ${upright.length ? `${upright.length} upright → ${groups.length} different VP pair${groups.length > 1 ? 's' : ''}, all on the one horizon.` : ''} ${tilted.length ? `${tilted.length} tilted → ${tops.length} extra vanishing line${tops.length > 1 ? 's' : ''} ("new horizons").` : 'No new horizon lines — only tilting a box creates one.'}</p>`);
+  out.push('<p class="rule"><b>Rule:</b> box yaw slides VPs along the horizon · box pitch/roll makes a new vanishing line for its faces · camera tilt moves the horizon in the frame (+ vertical VP) · camera roll rotates it · camera height changes what is above/below it.</p>');
+  insightBody.innerHTML = out.join('');
+}
+document.getElementById('insightHead').onclick = () => {
+  const el = document.getElementById('insight'); el.classList.toggle('collapsed');
+  document.getElementById('insightToggle').textContent = el.classList.contains('collapsed') ? '▸' : '▾';
+};
+
+// ---------- UI ----------
+let camSync = [], boxSync = [];
+function slider(parent, list, { label, min, max, step, get, set, unit = '', reset }) {
+  const row = document.createElement('div'); row.className = 'row';
+  row.innerHTML = `<label title="${label}">${label}</label><input type="range" min="${min}" max="${max}" step="${step}"><input type="number" step="${step}"><span class="unit">${unit}</span>`;
+  const [r, n] = row.querySelectorAll('input');
+  const sync = () => { const v = get(); r.value = v; n.value = +(+v).toFixed(2); };
+  r.oninput = () => { set(+r.value); n.value = r.value; changed(false); };
+  n.onchange = () => { set(+n.value); r.value = n.value; changed(false); };
+  if (reset !== undefined) { r.ondblclick = () => { set(reset); sync(); changed(false); }; r.title = 'double-click to reset'; }
+  sync(); parent.appendChild(row); list.push(sync);
+}
+function buildCamControls() {
+  const el = document.getElementById('camControls'); el.innerHTML = ''; camSync = [];
+  const c = () => state.cam;
+  slider(el, camSync, { label: 'Eye height', min: 0.05, max: 30, step: 0.05, get: () => c().height, set: v => (c().height = v), unit: 'm', reset: 1.6 });
+  slider(el, camSync, { label: 'Tilt (look ↑↓)', min: -80, max: 80, step: 0.5, get: () => c().pitch, set: v => (c().pitch = v), unit: '°', reset: 0 });
+  slider(el, camSync, { label: 'Turn (yaw)', min: -180, max: 180, step: 0.5, get: () => c().yaw, set: v => (c().yaw = v), unit: '°', reset: 0 });
+  slider(el, camSync, { label: 'Roll', min: -45, max: 45, step: 0.5, get: () => c().roll, set: v => (c().roll = v), unit: '°', reset: 0 });
+  slider(el, camSync, { label: 'Field of view', min: 15, max: 120, step: 1, get: () => c().fov, set: v => (c().fov = v), unit: '°', reset: 60 });
+  slider(el, camSync, { label: 'Position x', min: -60, max: 60, step: 0.1, get: () => c().x, set: v => (c().x = v), unit: 'm', reset: 0 });
+  slider(el, camSync, { label: 'Position z', min: -60, max: 60, step: 0.1, get: () => c().z, set: v => (c().z = v), unit: 'm', reset: 0 });
+  slider(el, camSync, { label: 'View zoom', min: 0.05, max: 2, step: 0.01, get: () => state.view.scale, set: v => (state.view.scale = v), unit: '×', reset: 1 });
+}
+function buildBoxControls() {
+  const el = document.getElementById('boxControls'); el.innerHTML = ''; boxSync = [];
+  const b = sel();
+  if (!b) { el.innerHTML = '<div class="muted">No box selected.</div>'; return; }
+  const head = document.createElement('div'); head.className = 'muted'; head.style.margin = '6px 0 2px';
+  head.innerHTML = `Selected: <b style="color:hsl(${b.hue} 60% 65%)">${b.name}</b>`;
+  el.appendChild(head);
+  const S = (label, key, min, max, step, unit, reset) => slider(el, boxSync, { label, min, max, step, unit, reset, get: () => b[key], set: v => (b[key] = v) });
+  S('Yaw (turn)', 'yaw', -180, 180, 0.5, '°', 0);
+  S('Pitch (tip fwd)', 'pitch', -90, 90, 0.5, '°', 0);
+  S('Roll (tip side)', 'roll', -90, 90, 0.5, '°', 0);
+  S('Position x', 'x', -30, 30, 0.1, 'm');
+  S('Position z', 'z', -30, 60, 0.1, 'm');
+  S('Elevation', 'elev', 0, 20, 0.05, 'm', 0);
+  S('Width (x)', 'w', 0.2, 15, 0.1, 'm');
+  S('Height (y)', 'h', 0.2, 15, 0.1, 'm');
+  S('Depth (z)', 'd', 0.2, 15, 0.1, 'm');
+}
+function updateList() {
+  const el = document.getElementById('list'); el.innerHTML = '';
+  document.getElementById('boxCount').textContent = state.boxes.length ? `${state.boxes.length}` : '';
+  for (const b of state.boxes) {
+    const it = document.createElement('div');
+    it.className = 'item' + (b.id === state.selected ? ' sel' : '');
+    it.innerHTML = `<span class="sw" style="background:hsl(${b.hue} 50% 58%)"></span>${b.name}<small>y ${fmt(b.yaw)}° · p ${fmt(b.pitch)}° · r ${fmt(b.roll)}°</small>`;
+    it.onclick = () => select(b.id);
+    el.appendChild(it);
+  }
+}
+function select(id) { state.selected = id; buildBoxControls(); updateList(); requestRender(); }
+function changed(rebuild) {
+  if (rebuild) { buildBoxControls(); buildCamControls(); } else { boxSync.forEach(f => f()); camSync.forEach(f => f()); }
+  updateList(); updateCamReadout(); requestRender();
+}
+
+// ---------- camera control ----------
+const wrapDeg = a => ((a + 180) % 360 + 360) % 360 - 180;
+function camTarget() {
+  const s = sel();
+  if (s) return boxGeom(s).center;
+  const c = state.cam, y = c.yaw * DEG;
+  return [c.x + Math.sin(y) * 8, Math.max(0, c.height - 1), c.z + Math.cos(y) * 8];
+}
+function lookAt(t) {
+  const c = state.cam, d = sub(t, [c.x, c.height, c.z]);
+  const hz = Math.hypot(d[0], d[2]);
+  if (hz < 1e-6 && Math.abs(d[1]) < 1e-6) return;
+  c.yaw = wrapDeg(Math.atan2(d[0], d[2]) / DEG);
+  c.pitch = clamp(Math.atan2(d[1], hz) / DEG, -80, 80);
+}
+function orbitTo(t, azDeg, elDeg, r) {
+  const c = state.cam, az = azDeg * DEG, el = clamp(elDeg, -80, 85) * DEG;
+  c.x = t[0] + r * Math.sin(az) * Math.cos(el);
+  c.z = t[2] + r * Math.cos(az) * Math.cos(el);
+  c.height = Math.max(0.05, t[1] + r * Math.sin(el));
+  lookAt(t);
+}
+function orbitState(t) {
+  const c = state.cam, d = sub([c.x, c.height, c.z], t);
+  const r = Math.max(1, Math.hypot(...d));
+  return { az: Math.atan2(d[0], d[2]) / DEG, el: Math.asin(clamp(d[1] / r, -1, 1)) / DEG, r };
+}
+function walk(fwd, side) {
+  const c = state.cam, y = c.yaw * DEG;
+  c.x += Math.sin(y) * fwd + Math.cos(y) * side;
+  c.z += Math.cos(y) * fwd - Math.sin(y) * side;
+}
+function viewpoint(kind) {
+  const t = camTarget(), o = orbitState(t);
+  const r = Math.max(o.r, 6);
+  const s = sel();
+  if (kind === 'eye') { const c = state.cam; c.height = 1.6; const hz = Math.max(r, 6); c.x = t[0] + Math.sin(o.az * DEG) * hz; c.z = t[2] + Math.cos(o.az * DEG) * hz; c.roll = 0; c.pitch = 0; c.yaw = wrapDeg(o.az + 180); }
+  else if (kind === 'worm') { const c = state.cam; c.height = 0.15; const hz = Math.max(r * 0.7, 4); c.x = t[0] + Math.sin(o.az * DEG) * hz; c.z = t[2] + Math.cos(o.az * DEG) * hz; c.roll = 0; lookAt(s ? add(t, [0, s.h / 2, 0]) : t); }
+  else if (kind === 'bird') { state.cam.roll = 0; orbitTo(t, o.az, 50, Math.max(r, 10)); }
+}
+function camAction(a, fine) {
+  const c = state.cam, st = fine ? 1 : 5, mv = fine ? 0.25 : 1;
+  switch (a) {
+    case 'look-up': c.pitch = clamp(c.pitch + st, -80, 80); break;
+    case 'look-down': c.pitch = clamp(c.pitch - st, -80, 80); break;
+    case 'look-left': c.yaw = wrapDeg(c.yaw - st); break;
+    case 'look-right': c.yaw = wrapDeg(c.yaw + st); break;
+    case 'level': c.pitch = 0; c.roll = 0; break;
+    case 'fwd': walk(mv, 0); break;
+    case 'back': walk(-mv, 0); break;
+    case 'left': walk(0, -mv); break;
+    case 'right': walk(0, mv); break;
+    case 'up': c.height = clamp(c.height + (fine ? 0.1 : 0.5), 0.05, 60); break;
+    case 'down': c.height = clamp(c.height - (fine ? 0.1 : 0.5), 0.05, 60); break;
+    case 'roll-l': c.roll = clamp(c.roll - st, -45, 45); break;
+    case 'roll-r': c.roll = clamp(c.roll + st, -45, 45); break;
+    case 'roll0': c.roll = 0; break;
+    case 'wide': c.fov = clamp(c.fov + st, 15, 120); break;
+    case 'tele': c.fov = clamp(c.fov - st, 15, 120); break;
+    case 'lookat': lookAt(camTarget()); break;
+    case 'reset': state.cam = defaultCam(); state.view = { scale: 1, panX: 0, panY: 0 }; buildCamControls(); break;
+    case 'worm': case 'eye': case 'bird': viewpoint(a); break;
+  }
+  changed(false);
+}
+function updateCamReadout() {
+  const c = state.cam, el = document.getElementById('camReadout');
+  if (el) el.innerHTML = `eye ${fmt(c.height)} m · tilt ${fmt(c.pitch)}° · turn ${fmt(c.yaw)}°<br>roll ${fmt(c.roll)}° · FOV ${fmt(c.fov)}° · pos ${fmt(c.x)}, ${fmt(c.z)}`;
+}
+document.querySelectorAll('#campad [data-cam]').forEach(btn => {
+  let timer = null;
+  const stop = () => { clearInterval(timer); timer = null; };
+  btn.addEventListener('pointerdown', e => {
+    const a = btn.dataset.cam, fine = e.shiftKey;
+    camAction(a, fine);
+    if (/^(look|fwd|back|left|right|up|down|roll-|wide|tele)/.test(a)) { stop(); timer = setInterval(() => camAction(a, fine), 90); }
+  });
+  btn.addEventListener('pointerup', stop); btn.addEventListener('pointerleave', stop);
+});
+document.getElementById('campadHead').onclick = () => {
+  const el = document.getElementById('campad'); el.classList.toggle('collapsed');
+  document.getElementById('campadToggle').textContent = el.classList.contains('collapsed') ? '▸' : '▾';
+};
+function buildChecks() {
+  const el = document.getElementById('checks');
+  const items = [['horizon', 'Horizon line'], ['grid', 'Ground grid'], ['planeLines', 'Tilted plane lines'], ['sideLines', 'Side plane lines'], ['xray', 'X-ray (hidden edges)'], ['labels', 'Labels'], ['sky', 'Sky / ground tint'], ['cv', 'Center of vision']];
+  for (const [k, l] of items) {
+    const lab = document.createElement('label');
+    lab.innerHTML = `<input type="checkbox" ${state.opts[k] ? 'checked' : ''}> ${l}`;
+    lab.querySelector('input').onchange = e => { state.opts[k] = e.target.checked; requestRender(); };
+    el.appendChild(lab);
+  }
+  const v = document.getElementById('optVps'); v.value = state.opts.vps; v.onchange = () => { state.opts.vps = v.value; requestRender(); };
+  const c = document.getElementById('optCons'); c.value = state.opts.cons; c.onchange = () => { state.opts.cons = c.value; requestRender(); };
+}
+
+// buttons
+document.getElementById('addBtn').onclick = addBox;
+function addBox() {
+  const c = state.cam;
+  const fwd = [Math.sin(c.yaw * DEG), Math.cos(c.yaw * DEG)];
+  const off = (Math.random() - 0.5) * 6;
+  const b = makeBox({ x: +(c.x + fwd[0] * 9 + fwd[1] * off).toFixed(1), z: +(c.z + fwd[1] * 9 - fwd[0] * off).toFixed(1), yaw: Math.round(Math.random() * 90 - 45) });
+  state.boxes.push(b); state.lesson = null; select(b.id);
+}
+document.getElementById('dupBtn').onclick = () => {
+  const s = sel(); if (!s) return;
+  const b = makeBox({ ...s, id: undefined, name: undefined, hue: undefined, x: s.x + s.w + 1 });
+  b.name = 'B' + b.id; b.hue = HUES[(b.id - 1) % HUES.length];
+  state.boxes.push(b); select(b.id);
+};
+document.getElementById('delBtn').onclick = removeSelected;
+function removeSelected() {
+  const i = state.boxes.findIndex(b => b.id === state.selected);
+  if (i < 0) return;
+  state.boxes.splice(i, 1);
+  state.selected = state.boxes.length ? state.boxes[Math.min(i, state.boxes.length - 1)].id : null;
+  buildBoxControls(); updateList(); requestRender();
+}
+document.getElementById('lineUpBtn').onclick = () => {
+  const bs = [...state.boxes].sort((a, b) => a.x - b.x);
+  if (!bs.length) return;
+  const s = sel();
+  const z = s ? s.z : 8;
+  const gap = Math.max(...bs.map(b => Math.max(b.w, b.d, b.h))) + 1.2;
+  bs.forEach((b, i) => { b.x = +(state.cam.x + (i - (bs.length - 1) / 2) * gap).toFixed(2); b.z = z; b.elev = 0; });
+  changed(false);
+};
+document.getElementById('copyRotBtn').onclick = () => {
+  const s = sel(); if (!s) return;
+  state.boxes.forEach(b => { b.yaw = s.yaw; b.pitch = s.pitch; b.roll = s.roll; });
+  changed(false);
+};
+document.getElementById('zeroRotBtn').onclick = () => { const s = sel(); if (!s) return; s.yaw = s.pitch = s.roll = 0; changed(false); };
+document.getElementById('camReset').onclick = () => { state.cam = defaultCam(); state.view = { scale: 1, panX: 0, panY: 0 }; buildCamControls(); requestRender(); };
+
+// ---------- presets ----------
+const row = (yaws, extra = {}) => yaws.map((y, i) => makeBox({ x: (i - (yaws.length - 1) / 2) * 4, z: 9, yaw: y, ...(typeof extra === 'function' ? extra(i) : extra) }));
+const PRESETS = [
+  { name: 'Same rotation, one row', title: 'Parallel boxes share vanishing points', text: 'Four boxes on one row, all yawed 35°. Every box sends its edges to the <i>same two VPs</i> on the horizon. Try moving one deeper or raising it — its VPs don\'t move. Now change one box\'s yaw.', build: () => ({ boxes: row([35, 35, 35, 35]) }) },
+  { name: 'Different yaws, one row', title: 'Yaw slides VPs along the horizon', text: 'Same row, yaws 0°, 20°, 45°, 70°. Each box has its own VP pair, but <b>every pair sits on the same horizon</b>. Yaw never creates a new horizon — drag the yaw slider and watch the VPs slide.', build: () => ({ boxes: row([0, 20, 45, 70]) }) },
+  { name: '1-point vs 2-point', title: '1-point is just a special yaw', text: 'The left box faces you squarely (yaw 0°): its depth edges go to the CV and its width edges stay horizontal (VP at ∞). The right box is yawed 30°: 2-point. Slowly rotate the left one to see the VP come in from infinity.', build: () => ({ boxes: [makeBox({ x: -3, z: 8, yaw: 0 }), makeBox({ x: 3, z: 8, yaw: 30 })] }) },
+  { name: 'Tilt a box → new horizon', title: 'Tilting creates a new vanishing line', text: 'All three share yaw 30°. B1 is flat; B2 is pitched 25° (tipped forward like a ramp); B3 is rolled 20° (tipped sideways). The tilted ones get their own dashed vanishing line, and each pivots around the VP of its hinge edge, which <i>stays on the horizon</i>.', build: () => ({ boxes: [makeBox({ x: -5, z: 9, yaw: 30 }), makeBox({ x: 0, z: 9, yaw: 30, pitch: 25 }), makeBox({ x: 5, z: 9, yaw: 30, roll: 20 })] }) },
+  { name: 'Tumbling box', title: 'Compound tilt: nothing on the horizon', text: 'Pitch + roll together: no edge is horizontal any more, so none of the 3 VPs sit on the horizon, and the box\'s faces each have their own vanishing line. Turn on "Side plane lines" to see all three.', build: () => ({ boxes: [makeBox({ x: -3, z: 9, yaw: 20 }), makeBox({ x: 3, z: 9, yaw: 20, pitch: 30, roll: 25 })] }) },
+  { name: 'Ramp / roof study', title: 'Inclined planes on one hinge direction', text: 'Thin slabs share yaw 25° and tilt more and more around the same horizontal axis (pitch 0°, 15°, 30°, 45°). Their vanishing lines fan out from <b>one point on the horizon</b> — the VP of the shared hinge direction. This is how roofs, stairs and ramps line up.', build: () => ({ boxes: [0, 15, 30, 45].map((p, i) => makeBox({ x: (i - 1.5) * 4.5, z: 10, yaw: 25, pitch: p, w: 3, h: 0.3, d: 3 })) }) },
+  { name: 'Look up: 3-point', title: 'Camera tilt moves the horizon', text: 'Camera tilted up 25° at tall towers. The horizon drops below the CV and verticals converge upward to a 3rd VP. The boxes didn\'t change; only your viewing direction did. The horizon is still at eye level.', build: () => ({ cam: { pitch: 25 }, boxes: row([30, 30, 30], { h: 10, w: 2.5, d: 2.5, z: 14 }) }) },
+  { name: 'Look down from above', title: "Bird's-eye 3-point", text: 'Eye height 12 m, tilted down 40°. The horizon rises toward the top of the frame (or out of it) and verticals converge downward.', build: () => ({ cam: { height: 12, pitch: -40 }, boxes: row([10, 10, 40, 40], i => ({ z: 10 + (i % 2) * 4, h: 1 + i })) }) },
+  { name: 'Eye level & floating boxes', title: 'Above, on, and below the horizon', text: 'Same rotation, different heights. Boxes below eye level show their tops, boxes above show their bottoms, and the horizon slices through the one at eye level. All still share the same VPs.', build: () => ({ boxes: [0, 1.1, 2.4, 4].map((e, i) => makeBox({ x: (i - 1.5) * 4, z: 9, yaw: 40, elev: e, h: 1, w: 1.6, d: 1.6 })) }) },
+  { name: 'Dutch angle (camera roll)', title: 'Camera roll rotates the horizon', text: 'Camera rolled 15°. The horizon is tilted <i>in the frame</i>, but every VP still sits on it — it\'s the same eye-level line. Compare with "Tilt a box": there the horizon stays put and the <i>box</i> gets a new line.', build: () => ({ cam: { roll: 15 }, boxes: row([20, 50, 70]) }) },
+];
+function loadPreset(p) {
+  nextId = 1;
+  const r = p.build();
+  state.cam = Object.assign(defaultCam(), r.cam || {});
+  state.view = { scale: 1, panX: 0, panY: 0 };
+  state.boxes = r.boxes;
+  state.boxes.forEach((b, i) => { b.id = i + 1; b.name = 'B' + (i + 1); b.hue = HUES[i % HUES.length]; });
+  nextId = state.boxes.length + 1;
+  state.selected = state.boxes.length ? state.boxes[state.boxes.length > 1 ? 1 : 0].id : null;
+  state.lesson = { title: p.title, text: p.text };
+  document.getElementById('insight').classList.remove('collapsed');
+  changed(true);
+  // auto zoom-out so the selected box's VPs fit
+  requestAnimationFrame(() => { fitVPs(); });
+}
+function fitVPs() {
+  computeCamera();
+  let need = 1;
+  for (const b of state.boxes) {
+    const g = boxGeom(b);
+    for (const a of g.axes) {
+      const vp = vpOf(a);
+      if (vp.inf) continue;
+      const dx = Math.abs(vp.x - CAM.cx) / (W / 2 - 40), dy = Math.abs(vp.y - CAM.cy) / (H / 2 - 40);
+      const m = Math.max(dx, dy);
+      if (m > need && m < 6) need = m;
+    }
+  }
+  state.view.scale = Math.max(0.2, 1 / need);
+  changed(false);
+}
+(function buildPresets() {
+  const el = document.getElementById('presets');
+  PRESETS.forEach(p => { const b = document.createElement('button'); b.textContent = p.name; b.onclick = () => loadPreset(p); el.appendChild(b); });
+})();
+
+// ---------- interaction ----------
+let drag = null;
+const mpos = e => { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+function hitTest(mx, my) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  for (let i = hitList.length - 1; i >= 0; i--) {
+    if (hitList[i].paths.some(p => ctx.isPointInPath(p, mx, my))) return hitList[i].b;
+  }
+  return null;
+}
+canvas.addEventListener('pointerdown', e => {
+  const [mx, my] = mpos(e);
+  computeCamera();
+  if (e.button === 1 || (e.button === 2 && e.shiftKey)) {
+    const t = camTarget();
+    drag = { mode: 'orbit', sx: mx, sy: my, t, o: orbitState(t) };
+    canvas.setPointerCapture(e.pointerId); e.preventDefault(); return;
+  }
+  if (e.button === 2) {
+    drag = { mode: 'look', sx: mx, sy: my, yaw: state.cam.yaw, pitch: state.cam.pitch };
+    canvas.setPointerCapture(e.pointerId); e.preventDefault(); return;
+  }
+  const hit = hitTest(mx, my);
+  if (hit) {
+    if (hit.id !== state.selected) select(hit.id);
+    const mode = e.shiftKey ? 'yaw' : (e.ctrlKey || e.altKey || e.metaKey) ? 'tilt' : 'move';
+    drag = { mode, b: hit, sx: mx, sy: my, start: { ...hit } };
+    if (mode === 'move') { const p = rayPlaneY(mx, my, hit.elev); drag.off = p ? [hit.x - p[0], hit.z - p[2]] : null; }
+  } else drag = { mode: 'pan', sx: mx, sy: my, px: state.view.panX, py: state.view.panY };
+  canvas.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+canvas.addEventListener('pointermove', e => {
+  const [mx, my] = mpos(e);
+  if (!drag) { computeCamera(); canvas.style.cursor = hitTest(mx, my) ? 'grab' : 'crosshair'; return; }
+  const b = drag.b, dx = mx - drag.sx, dy = my - drag.sy;
+  if (drag.mode === 'pan') { state.view.panX = drag.px + dx; state.view.panY = drag.py + dy; }
+  else if (drag.mode === 'look') {
+    const k = state.cam.fov / Math.max(200, H); // degrees per pixel, scaled by lens
+    state.cam.yaw = wrapDeg(drag.yaw - dx * k);
+    state.cam.pitch = clamp(drag.pitch + dy * k, -80, 80);
+  }
+  else if (drag.mode === 'orbit') orbitTo(drag.t, drag.o.az - dx * 0.4, drag.o.el + dy * 0.3, drag.o.r);
+  else if (drag.mode === 'move' && drag.off) { computeCamera(); const p = rayPlaneY(mx, my, b.elev); if (p) { b.x = +(p[0] + drag.off[0]).toFixed(2); b.z = +(p[2] + drag.off[1]).toFixed(2); } }
+  else if (drag.mode === 'yaw') { let y = drag.start.yaw + dx * 0.5; y = ((y + 180) % 360 + 360) % 360 - 180; b.yaw = Math.round(y * 2) / 2; }
+  else if (drag.mode === 'tilt') { b.pitch = clamp(Math.round((drag.start.pitch + dy * 0.4) * 2) / 2, -90, 90); b.roll = clamp(Math.round((drag.start.roll + dx * 0.4) * 2) / 2, -90, 90); }
+  changed(false);
+});
+canvas.addEventListener('pointerup', () => { drag = null; });
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const [mx, my] = mpos(e);
+  const dy0 = e.deltaY || e.deltaX;
+  if (e.ctrlKey || e.metaKey) { state.cam.fov = clamp(state.cam.fov + Math.sign(dy0) * 2, 15, 120); changed(false); return; }
+  if (e.altKey && drag === null) { const t = camTarget(), o = orbitState(t); orbitTo(t, o.az, o.el, clamp(o.r * Math.exp(dy0 * 0.0012), 1, 200)); changed(false); return; }
+  computeCamera();
+  const k = Math.exp(-e.deltaY * 0.0012);
+  const ns = clamp(state.view.scale * k, 0.03, 4), kk = ns / state.view.scale;
+  const ncx = mx - (mx - CAM.cx) * kk, ncy = my - (my - CAM.cy) * kk;
+  state.view.scale = ns; state.view.panX = ncx - W / 2; state.view.panY = ncy - H / 2;
+  changed(false);
+}, { passive: false });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('auxclick', e => e.preventDefault());
+canvas.addEventListener('dblclick', () => { state.view = { scale: state.view.scale, panX: 0, panY: 0 }; changed(false); });
+
+// map drag
+let mapDrag = null;
+map.addEventListener('pointerdown', e => {
+  if (!MAP) return;
+  const r = map.getBoundingClientRect(); const [wx, wz] = MAP.inv(e.clientX - r.left, e.clientY - r.top);
+  let best = null, bd = Infinity;
+  for (const b of state.boxes) { const d = Math.hypot(b.x - wx, b.z - wz); if (d < bd) { bd = d; best = b; } }
+  if (best && bd < Math.max(1.5, Math.max(best.w, best.d) * 0.8)) { select(best.id); mapDrag = { b: best, off: [best.x - wx, best.z - wz] }; map.setPointerCapture(e.pointerId); }
+});
+map.addEventListener('pointermove', e => {
+  if (!mapDrag) return;
+  const r = map.getBoundingClientRect(); const [wx, wz] = MAP.inv(e.clientX - r.left, e.clientY - r.top);
+  mapDrag.b.x = +(wx + mapDrag.off[0]).toFixed(2); mapDrag.b.z = +(wz + mapDrag.off[1]).toFixed(2);
+  changed(false);
+});
+map.addEventListener('pointerup', () => { mapDrag = null; });
+
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  const b = sel(); const step = e.shiftKey ? 1 : 5;
+  const k = e.key.toLowerCase();
+  if (k === 'n') { addBox(); return; }
+  const camKeys = { arrowup: 'fwd', arrowdown: 'back', arrowleft: 'left', arrowright: 'right', r: 'up', f: 'down', z: 'roll-l', c: 'roll-r', l: 'level', g: 'lookat' };
+  if (camKeys[k] && !e.ctrlKey && !e.metaKey) { e.preventDefault(); camAction(camKeys[k], e.shiftKey); return; }
+  if (!b) return;
+  if (k === 'delete' || k === 'backspace') { removeSelected(); e.preventDefault(); return; }
+  const map_ = { q: ['yaw', -step], e: ['yaw', step], w: ['pitch', step], s: ['pitch', -step], a: ['roll', -step], d: ['roll', step] };
+  if (map_[k]) {
+    const [key, d] = map_[k];
+    b[key] = key === 'yaw' ? ((b[key] + d + 180) % 360 + 360) % 360 - 180 : clamp(b[key] + d, -90, 90);
+    changed(false);
+  }
+  if (k === 'tab') { e.preventDefault(); const i = state.boxes.findIndex(x => x.id === b.id); select(state.boxes[(i + 1) % state.boxes.length].id); }
+});
+
+// ---------- init ----------
+buildChecks();
+buildCamControls();
+loadPreset(PRESETS[1]);
+</script>
+</body>
+</html>
